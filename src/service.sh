@@ -3,7 +3,6 @@
 
 MODDIR=${0%/*}
 
-# Evita execução duplicada (propriedade não persiste entre ROMs)
 if [ "$(getprop sys.p80_booster.ran)" = "1" ]; then exit 0; fi
 setprop sys.p80_booster.ran 1
 
@@ -21,33 +20,29 @@ sleep 15
 logcat -G 256K 2>/dev/null
 
 # ──────────────────────────────────────────────
-# 2. REGRAS SELINUX (seguras, universais)
+# 2. SELINUX
 # ──────────────────────────────────────────────
 magiskpolicy --live "allow system_suspend sysfs file read" 2>/dev/null
 magiskpolicy --live "allow system_suspend sysfs dir search" 2>/dev/null
 
 # ──────────────────────────────────────────────
-# 3. BIND MOUNTS — manifestos e permissões
+# 3. BIND MOUNTS — sempre tentar (falham se já overlay)
 # ──────────────────────────────────────────────
 
-# Remove fingerprint do vendor manifest (v1 + v2 paths)
+# Vendor manifest (todos os paths possíveis)
 for manifest in \
     /vendor/etc/vintf/manifest/android.hardware.biometrics.fingerprint@2.1-service.xml \
     /system/vendor/etc/vintf/manifest/android.hardware.biometrics.fingerprint@2.1-service.xml; do
-    if [ -f "$manifest" ] && grep -q "fingerprint" "$manifest" 2>/dev/null; then
-        mount --bind "$MODDIR/vendor/etc/vintf/manifest/android.hardware.biometrics.fingerprint@2.1-service.xml" \
-            "$manifest" 2>/dev/null
-    fi
+    [ -f "$manifest" ] && mount --bind "$MODDIR/vendor/etc/vintf/manifest/android.hardware.biometrics.fingerprint@2.1-service.xml" "$manifest" 2>/dev/null
 done
 
-# Remove fingerprint das permissões vendor
-if grep -q "fingerprint" /vendor/etc/permissions/android.hardware.fingerprint.xml 2>/dev/null; then
+# Vendor permissions
+[ -f /vendor/etc/permissions/android.hardware.fingerprint.xml ] && \
     mount --bind "$MODDIR/vendor/etc/permissions/android.hardware.fingerprint.xml" \
         /vendor/etc/permissions/android.hardware.fingerprint.xml 2>/dev/null
-fi
 
 # ──────────────────────────────────────────────
-# 4. OTIMIZA POWER-MODE-MONITOR (phh GSIs)
+# 4. POWER-MODE-MONITOR
 # ──────────────────────────────────────────────
 if [ -f /system/bin/power-mode-monitor.sh ]; then
     mount --bind "$MODDIR/system/bin/power-mode-monitor.sh" \
@@ -56,7 +51,19 @@ if [ -f /system/bin/power-mode-monitor.sh ]; then
 fi
 
 # ──────────────────────────────────────────────
-# 5. DETECTOR — FingerprintHand no system_server
+# 5. PARA O SERVIÇO FINGERPRINT VIA INIT
+# ──────────────────────────────────────────────
+FP_PID=$(pgrep -f android.hardware.biometrics.fingerprint 2>/dev/null)
+if [ -n "$FP_PID" ]; then
+    FP_SVC=$(getprop init.svc.$(cat /proc/$FP_PID/cmdline 2>/dev/null | tr '\0' '\n' | head -1) 2>/dev/null)
+    setprop ctl.stop vendor.fps_hal 2>/dev/null
+    setprop ctl.stop android.hardware.biometrics.fingerprint@2.1-service 2>/dev/null
+    kill -9 "$FP_PID" 2>/dev/null
+    log -t p80-booster "Serviço fingerprint parado"
+fi
+
+# ──────────────────────────────────────────────
+# 6. DETECTOR — FingerprintHand
 # ──────────────────────────────────────────────
 FP_HAND=$(top -b -n 1 -H -p "$(pgrep system_server)" 2>/dev/null | grep FingerprintHand)
 if [ -n "$FP_HAND" ]; then
@@ -89,15 +96,22 @@ else
 fi
 
 # ──────────────────────────────────────────────
-# 6. MONITOR BACKGROUND — fingerprint recorrente
+# 7. MONITOR INTELIGENTE (só age se CPU > 0)
 # ──────────────────────────────────────────────
 (
     while true; do
-        for proc in android.hardware.biometrics.fingerprint@2.1-service vendor.fps_hal fpsgo; do
+        for proc in android.hardware.biometrics.fingerprint@2.1-service vendor.fps_hal; do
             pid=$(pgrep -f "$proc" 2>/dev/null)
-            [ -n "$pid" ] && kill -9 "$pid" 2>/dev/null
+            if [ -n "$pid" ]; then
+                cpu=$(top -b -n 1 -p "$pid" 2>/dev/null | tail -1 | awk '{print $9}' | head -1)
+                cpu_int=${cpu%.*}
+                if [ "${cpu_int:-0}" -gt 0 ] 2>/dev/null; then
+                    kill -9 "$pid" 2>/dev/null
+                    log -t p80-booster "Matado $proc (CPU=$cpu%)"
+                fi
+            fi
         done
-        sleep 30
+        sleep 60
     done
 ) &
 
