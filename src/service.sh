@@ -95,24 +95,4 @@ else
     log -t p80-booster "FingerprintHand não detectado"
 fi
 
-# ──────────────────────────────────────────────
-# 7. MONITOR INTELIGENTE (só age se CPU > 0)
-# ──────────────────────────────────────────────
-(
-    while true; do
-        for proc in android.hardware.biometrics.fingerprint@2.1-service vendor.fps_hal; do
-            pid=$(pgrep -f "$proc" 2>/dev/null)
-            if [ -n "$pid" ]; then
-                cpu=$(top -b -n 1 -p "$pid" 2>/dev/null | tail -1 | awk '{print $9}' | head -1)
-                cpu_int=${cpu%.*}
-                if [ "${cpu_int:-0}" -gt 0 ] 2>/dev/null; then
-                    kill -9 "$pid" 2>/dev/null
-                    log -t p80-booster "Matado $proc (CPU=$cpu%)"
-                fi
-            fi
-        done
-        sleep 60
-    done
-) &
-
 log -t p80-booster "=== P80 GSI Booster pronto ==="
