@@ -44,8 +44,8 @@ Este módulo Magisk faz 3 coisas:
 
 ### Método 2 — ADB (instalação remota)
 ```bash
-adb push P80_GSI_Booster_v1.3.zip /sdcard/Download/
-adb shell "su -c 'magisk --install-module /sdcard/Download/P80_GSI_Booster_v1.3.zip'"
+adb push P80_GSI_Booster_v1.6.zip /sdcard/Download/
+adb shell "su -c 'magisk --install-module /sdcard/Download/P80_GSI_Booster_v1.6.zip'"
 adb reboot
 ```
 
