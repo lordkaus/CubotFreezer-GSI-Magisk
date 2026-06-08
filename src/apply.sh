@@ -33,8 +33,8 @@ if [ -f /system/bin/power-mode-monitor.sh ]; then
     killall -9 power-mode-monitor.sh 2>/dev/null
 fi
 
-# 4. Remove .ran e executa service.sh (se necessário)
-rm -f "$MODDIR/.ran"
+# 4. Reseta guard e executa service.sh (se necessário)
+setprop sys.p80_booster.ran 0
 sh "$MODDIR/service.sh" &
 
 log -t p80-booster "=== apply.sh concluído ==="

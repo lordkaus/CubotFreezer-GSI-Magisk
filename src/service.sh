@@ -3,9 +3,9 @@
 
 MODDIR=${0%/*}
 
-# Evita execução duplicada
-[ -f "$MODDIR/.ran" ] && exit 0
-echo 1 > "$MODDIR/.ran"
+# Evita execução duplicada (propriedade não persiste entre ROMs)
+if [ "$(getprop sys.p80_booster.ran)" = "1" ]; then exit 0; fi
+setprop sys.p80_booster.ran 1
 
 log -t p80-booster "=== P80 GSI Booster ==="
 
