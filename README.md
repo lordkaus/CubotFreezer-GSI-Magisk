@@ -1,8 +1,10 @@
 # ❄️ CubotFreezer GSI Magisk
 
-**Congela o fingerprint HAL em GSIs no Cubot P80 (Mediatek).**
+**Correção de bug de performance para GSIs genéricas no Cubot P80 (Kernel 4.19.191).**
 
 Elimina o **FingerprintHand thread** que consome **75% da CPU** no system_server, causando superaquecimento, travamentos e bootloop em GSIs. Dispositivo roda **frio como stock** após instalar.
+
+✅ Testado no Cubot P80 — funciona em qualquer GSI genérica (AOSP, PHH, etc.)
 
 ---
 
@@ -90,9 +92,13 @@ adb shell "su -c 'sh /data/adb/modules/p80_gsi_booster/apply.sh'"
 ## 📋 Compatibilidade
 
 | Dispositivo | Status |
-|---|---|
+|---|---|---|
 | Cubot P80 (MT8781) | ✅ Testado |
 | Outros Mediatek com GSI | ✅ Provável (universal) |
+
+| Kernel | Versão |
+|---|---|
+| Testado | **4.19.191-ab1rctb8786p164P32** |
 
 | Android | Status |
 |---|---|

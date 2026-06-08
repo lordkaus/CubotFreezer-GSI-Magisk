@@ -3,4 +3,4 @@ name=P80 GSI Booster
 version=1.6
 versionCode=7
 author=opencode
-description=Otimizador seguro para GSIs no Cubot P80 e Mediatek. Corrige SELinux, fingerprint HAL, log spam e power-mode-monitor de forma não-agressiva.
+description=Corrige bug de performance em GSIs genéricas no Cubot P80 (Kernel 4.19.191). Elimina FingerprintHand 75% CPU, superaquecimento, bootloop.
